@@ -44,12 +44,10 @@ class PolicyManager_BaseClass():
 	def initialize_plots(self):
 		if self.args.name is not None:
 			logdir = os.path.join(self.args.logdir, self.args.name)
-			if not(os.path.isdir(logdir)):
-				os.mkdir(logdir)
+			os.makedirs(logdir, exist_ok=True)
 			logdir = os.path.join(logdir, "logs")
-			if not(os.path.isdir(logdir)):
-				os.mkdir(logdir)
-			# Create TF Logger. 
+			os.makedirs(logdir, exist_ok=True)
+			# Create TF Logger.
 			self.tf_logger = TFLogger.Logger(logdir)
 		else:
 			self.tf_logger = TFLogger.Logger()

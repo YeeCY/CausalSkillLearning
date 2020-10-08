@@ -23,7 +23,7 @@ class Roboturk_Dataset(Dataset):
 	def __init__(self, args):
 		# self.dataset_directory = '/checkpoint/tanmayshankar/Roboturk/RoboTurkPilot'
 		# TODO (chongyi zheng): use my dataset directory
-		self.dataset_directory = '/home/yee/RoboTurkPilot'
+		self.dataset_directory = os.path.expanduser('~/RoboTurkPilot')
 		self.load_directory = '../Data'
 		self.args = args
 		# Require a task list. 
@@ -247,7 +247,7 @@ class Roboturk_FullDataset(Roboturk_Dataset):
 
 	def setup(self):
 		self.files = []
-		for i in range(len(self.task_list)):
+		for i in range(len(self.task_list) - 2):
 			# TODO (chongyi zheng): what's this?
 			if i == 3 or i == 5:
 				self.files.append(np.load("{0}/{1}/FullDataset_Task_Demo_Array.npy".format(self.load_directory, self.task_list[i]), allow_pickle=True))

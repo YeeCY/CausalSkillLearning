@@ -24,6 +24,7 @@ class Roboturk_Dataset(Dataset):
 		# self.dataset_directory = '/checkpoint/tanmayshankar/Roboturk/RoboTurkPilot'
 		# TODO (chongyi zheng): use my dataset directory
 		self.dataset_directory = '/home/yee/RoboTurkPilot'
+		self.load_directory = '../Data'
 		self.args = args
 		# Require a task list. 
 
@@ -66,7 +67,7 @@ class Roboturk_Dataset(Dataset):
 		# Load data from all tasks. 			
 		self.files = []
 		for i in range(len(self.task_list)):
-			self.files.append(h5py.File("{0}/{1}/demo.hdf5".format(self.dataset_directory,self.task_list[i]),'r'))	
+			self.files.append(h5py.File("{0}/{1}/demo.hdf5".format(self.dataset_directory,self.task_list[i]),'r'))
 
 	def __len__(self):
 		return self.total_length
@@ -233,6 +234,10 @@ class Roboturk_Dataset(Dataset):
 			task_demo_array = np.array(task_demo_list)
 
 			# Now save this file_demo_list.
+			os.makedirs(os.path.join(save_dir, self.task_list[task_index]), exist_ok=True)
+
+			# TODO (chongyi zheng): add full task demo array
+			# np.save(os.path.join(save_dir, self.task_list[task_index], "FullDataset_Task_Demo_Array.npy"), task_demo_array)
 			np.save(os.path.join(save_dir, self.task_list[task_index], "New_Task_Demo_Array.npy"), task_demo_array)
 
 class Roboturk_FullDataset(Roboturk_Dataset):
@@ -243,10 +248,11 @@ class Roboturk_FullDataset(Roboturk_Dataset):
 	def setup(self):
 		self.files = []
 		for i in range(len(self.task_list)):
-			if i==3 or i==5:
-				self.files.append(np.load("{0}/{1}/FullDataset_Task_Demo_Array.npy".format(self.dataset_directory, self.task_list[i]), allow_pickle=True))
+			# TODO (chongyi zheng): what's this?
+			if i == 3 or i == 5:
+				self.files.append(np.load("{0}/{1}/FullDataset_Task_Demo_Array.npy".format(self.load_directory, self.task_list[i]), allow_pickle=True))
 			else:
-				self.files.append(np.load("{0}/{1}/New_Task_Demo_Array.npy".format(self.dataset_directory, self.task_list[i]), allow_pickle=True))
+				self.files.append(np.load("{0}/{1}/New_Task_Demo_Array.npy".format(self.load_directory, self.task_list[i]), allow_pickle=True))
 
 	def __getitem__(self, index):
 

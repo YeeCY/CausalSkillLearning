@@ -9,7 +9,7 @@ import glob, os, sys, argparse
 import torch, copy
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
-from IPython import embed
+# from IPython import embed
 
 import matplotlib
 matplotlib.use('Agg')
@@ -23,7 +23,8 @@ from memory_profiler import profile
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from IPython import embed
+# TODO (chongyi zheng): comment out
+# from IPython import embed
 import pdb
 import sklearn.manifold as skl_manifold
 from sklearn.decomposition import PCA

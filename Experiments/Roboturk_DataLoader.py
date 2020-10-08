@@ -21,7 +21,9 @@ class Roboturk_Dataset(Dataset):
 
 	# Class implementing instance of Roboturk dataset. 
 	def __init__(self, args):
-		self.dataset_directory = '/checkpoint/tanmayshankar/Roboturk/RoboTurkPilot'
+		# self.dataset_directory = '/checkpoint/tanmayshankar/Roboturk/RoboTurkPilot'
+		# TODO (chongyi zheng): use my dataset directory
+		self.dataset_directory = '/home/yee/RoboTurkPilot'
 		self.args = args
 		# Require a task list. 
 
@@ -140,7 +142,7 @@ class Roboturk_Dataset(Dataset):
 		for file in self.files:
 			file.close()
 
-	def preprocess_dataset(self):
+	def preprocess_dataset(self, save_dir):
 
 		# for task_index in range(len(self.task_list)):
 		# for task_index in [3,5]:
@@ -230,8 +232,8 @@ class Roboturk_Dataset(Dataset):
 			# Create array.
 			task_demo_array = np.array(task_demo_list)
 
-			# Now save this file_demo_list. 
-			np.save(os.path.join(self.dataset_directory,self.task_list[task_index],"New_Task_Demo_Array.npy"),task_demo_array)
+			# Now save this file_demo_list.
+			np.save(os.path.join(save_dir, self.task_list[task_index], "New_Task_Demo_Array.npy"), task_demo_array)
 
 class Roboturk_FullDataset(Roboturk_Dataset):
 	def __init__(self, args):
@@ -466,7 +468,8 @@ class Roboturk_Dataloader_Tester(unittest.TestCase):
 	
 	def test_Roboturkdataloader(self):
 
-		self.dataset = Roboturk_Dataset()
+		self.dataset = Roboturk_Dataset(None)
+		self.dataset.preprocess_dataset('../Data')
 
 		# Check the first index of the dataset.
 		data_element = self.dataset[0]

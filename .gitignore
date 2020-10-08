@@ -1,4 +1,5 @@
 # Ignore files.
+.idea
 *.bvh
 *.html
 *.png

@@ -14,7 +14,7 @@ import copy, os, imageio, scipy.misc, pdb, math, time, numpy as np
 import robosuite, threading
 from robosuite.wrappers import IKWrapper
 import matplotlib.pyplot as plt
-from IPython import embed
+# from IPython import embed
 
 # # Mocap viz.
 # import MocapVisualizationUtils

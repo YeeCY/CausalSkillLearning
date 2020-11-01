@@ -6,6 +6,7 @@
 *.jpg
 *.gif
 *.pyc
+Experiments/Experiment_Logs
 Experiments/Experimental_Logs/*
 Experiments/Code_Runs/*
 Data

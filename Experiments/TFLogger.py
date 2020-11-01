@@ -8,7 +8,8 @@
 # Code referenced from https://gist.github.com/gyglim/1f8dfb1b5c82627ae3efcfbbadb9f514
 import tensorflow as tf
 import numpy as np
-import scipy.misc 
+# import scipy.misc
+from PIL import Image
 try:
     from StringIO import StringIO  # Python 2.7
 except ImportError:
@@ -86,7 +87,9 @@ class Logger(object):
                 s = StringIO()
             except:
                 s = BytesIO()
-            scipy.misc.toimage(img).save(s, format="png")
+            # TODO (chongyi zheng): replace deprecated code
+            Image.fromarray(img).save(s, format='png')
+            # scipy.misc.toimage(img).save(s, format="png")
 
             # Create an Image object
             img_sum = tf.Summary.Image(encoded_image_string=s.getvalue(),

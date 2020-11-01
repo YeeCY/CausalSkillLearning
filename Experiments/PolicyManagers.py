@@ -170,33 +170,33 @@ class PolicyManager_BaseClass():
 		for e in range(self.number_epochs): 
 			
 			self.current_epoch_running = e
-			print("Starting Epoch: ",e)
+			print("Starting Epoch: ", e)
 
-			if e%self.args.save_freq==0:
+			if e % self.args.save_freq == 0:
 				self.save_all_models("epoch{0}".format(e))
 
 			np.random.shuffle(self.index_list)
 
-			if self.args.debug:
-				print("Embedding in Outer Train Function.")
-				embed()
+			# if self.args.debug: (chongyi zheng)
+			# 	print("Embedding in Outer Train Function.")
+			# 	embed()
 
 			# For every item in the epoch:
 			if self.args.setting=='imitation':
 				extent = self.dataset.get_number_task_demos(self.demo_task_index)
-			if self.args.setting=='transfer' or self.args.setting=='cycle_transfer':
+			if self.args.setting == 'transfer' or self.args.setting == 'cycle_transfer':
 				extent = self.extent
 			else:
-				extent = len(self.dataset)-self.test_set_size
+				extent = len(self.dataset) - self.test_set_size
 
 			for i in range(extent):
 
-				print("Epoch: ",e," Trajectory:",i, "Datapoint: ", self.index_list[i])
+				print("Epoch: ", e, " Trajectory:", i, "Datapoint: ", self.index_list[i])
 				self.run_iteration(counter, self.index_list[i])				
 
-				counter = counter+1
+				counter = counter + 1
 
-			if e%self.args.eval_freq==0:
+			if e % self.args.eval_freq == 0:
 				self.automatic_evaluation(e)
 
 		self.write_and_close()
@@ -587,7 +587,7 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 		# Training parameters. 		
 		self.baseline_value = 0.
 		self.beta_decay = 0.9
-		self. learning_rate = self.args.learning_rate
+		self.learning_rate = self.args.learning_rate
 		
 		self.initial_epsilon = self.args.epsilon_from
 		self.final_epsilon = self.args.epsilon_to
@@ -619,7 +619,7 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 
 			# if self.args.transformer:
 			# 	self.encoder_network = TransformerEncoder(self.input_size, self.hidden_size, self.latent_z_dimensionality, self.args).to(device)
-			# else:
+			# else:  # (chongyi zheng): input_size = state_dim
 			self.encoder_network = ContinuousEncoderNetwork(self.input_size, self.hidden_size, self.latent_z_dimensionality, self.args).to(device)		
 
 	def create_training_ops(self):
@@ -639,15 +639,15 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 		self.optimizer = torch.optim.Adam(self.parameter_list,lr=self.learning_rate)
 
 	def save_all_models(self, suffix):
-
 		logdir = os.path.join(self.args.logdir, self.args.name)
-		savedir = os.path.join(logdir,"saved_models")
+		savedir = os.path.join(logdir, "saved_models")
 		if not(os.path.isdir(savedir)):
 			os.mkdir(savedir)
-		save_object = {}
-		save_object['Policy_Network'] = self.policy_network.state_dict()
-		save_object['Encoder_Network'] = self.encoder_network.state_dict()
-		torch.save(save_object,os.path.join(savedir,"Model_"+suffix))
+		save_object = {
+			'Policy_Network': self.policy_network.state_dict(),
+			'Encoder_Network': self.encoder_network.state_dict()
+		}
+		torch.save(save_object, os.path.join(savedir, "Model_" + suffix))
 
 	def load_all_models(self, path, only_policy=False, just_subpolicy=False):
 		load_object = torch.load(path)
@@ -660,8 +660,8 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 
 	def set_epoch(self, counter):
 		if self.args.train:
-			if counter<self.decay_counter:
-				self.epsilon = self.initial_epsilon-self.decay_rate*counter
+			if counter < self.decay_counter:
+				self.epsilon = self.initial_epsilon - self.decay_rate*counter
 			else:
 				self.epsilon = self.final_epsilon		
 		else:
@@ -671,9 +671,9 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 
 		fig = plt.figure()		
 		ax = fig.gca()
-		ax.scatter(traj[:,0],traj[:,1],c=range(len(traj)),cmap='jet')
-		plt.xlim(-10,10)
-		plt.ylim(-10,10)
+		ax.scatter(traj[:, 0], traj[:, 1], c=range(len(traj)), cmap='jet')
+		plt.xlim(-10, 10)
+		plt.ylim(-10, 10)
 
 		if no_axes:
 			plt.axis('off')
@@ -681,27 +681,27 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 
 		width, height = fig.get_size_inches() * fig.get_dpi()
 		image = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(int(height), int(width), 3)
-		image = np.transpose(image, axes=[2,0,1])
+		image = np.transpose(image, axes=[2, 0, 1])
 
 		return image
 
-	def update_plots(self, counter, loglikelihood, sample_traj):
+	def update_plots(self, counter, loglikelihood, sample_traj, subpolicy_entropy=None):
 		
 		self.tf_logger.scalar_summary('Subpolicy Likelihood', loglikelihood.mean(), counter)
 		self.tf_logger.scalar_summary('Total Loss', self.total_loss.mean(), counter)
 		self.tf_logger.scalar_summary('Encoder KL', self.encoder_KL.mean(), counter)
 
-		if not(self.args.reparam):
+		if not self.args.reparam:
 			self.tf_logger.scalar_summary('Baseline', self.baseline.sum(), counter)
 			self.tf_logger.scalar_summary('Encoder Loss', self.encoder_loss.sum(), counter)
 			self.tf_logger.scalar_summary('Reinforce Encoder Loss', self.reinforce_encoder_loss.sum(), counter)
-			self.tf_logger.scalar_summary('Total Encoder Loss', self.total_encoder_loss.sum() ,counter)
+			self.tf_logger.scalar_summary('Total Encoder Loss', self.total_encoder_loss.sum(), counter)
 
 		if self.args.entropy:
 			self.tf_logger.scalar_summary('SubPolicy Entropy', torch.mean(subpolicy_entropy), counter)
 
-		if counter%self.args.display_freq==0:
-			self.tf_logger.image_summary("GT Trajectory",self.visualize_trajectory(sample_traj), counter)
+		if counter % self.args.display_freq == 0:
+			self.tf_logger.image_summary("GT Trajectory", self.visualize_trajectory(sample_traj), counter)
 
 	def assemble_inputs(self, input_trajectory, latent_z_indices, latent_b, sample_action_seq):
 
@@ -726,31 +726,31 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 		else:
 			# Append latent z indices to sample_traj data to feed as input to BOTH the latent policy network and the subpolicy network. 
 			assembled_inputs = torch.zeros((len(input_trajectory),self.input_size+self.latent_z_dimensionality+1)).to(device)
-			assembled_inputs[:,:self.input_size] = torch.tensor(input_trajectory).view(len(input_trajectory),self.input_size).to(device).float()			
+			assembled_inputs[:, :self.input_size] = torch.tensor(input_trajectory).view(len(input_trajectory),self.input_size).to(device).float()
 
-			assembled_inputs[range(1,len(input_trajectory)),self.input_size:-1] = latent_z_indices[:-1]
-			assembled_inputs[range(1,len(input_trajectory)),-1] = latent_b[:-1].float()
+			assembled_inputs[1:, self.input_size:-1] = latent_z_indices[:-1]
+			assembled_inputs[1:, -1] = latent_b[:-1].float()
 
-			# Now assemble inputs for subpolicy.
-			subpolicy_inputs = torch.zeros((len(input_trajectory),self.input_size+self.latent_z_dimensionality)).to(device)
-			subpolicy_inputs[:,:self.input_size] = torch.tensor(input_trajectory).view(len(input_trajectory),self.input_size).to(device).float()
-			subpolicy_inputs[range(len(input_trajectory)),self.input_size:] = latent_z_indices
+			# Now assemble inputs for subpolicy. TODO (chongyi zheng): update indexing code
+			subpolicy_inputs = torch.zeros((len(input_trajectory), self.input_size+self.latent_z_dimensionality)).to(device)
+			subpolicy_inputs[:, :self.input_size] = torch.tensor(input_trajectory).view(len(input_trajectory),self.input_size).to(device).float()
+			subpolicy_inputs[:, self.input_size:] = latent_z_indices
 			# subpolicy_inputs[range(len(input_trajectory)),-1] = latent_b.float()
 
 			# # Concatenated action sequence for policy network's forward / logprobabilities function. 
 			# padded_action_seq = np.concatenate([np.zeros((1,self.output_size)),sample_action_seq],axis=0)
-			padded_action_seq = np.concatenate([sample_action_seq,np.zeros((1,self.output_size))],axis=0)
+			padded_action_seq = np.concatenate([sample_action_seq, np.zeros((1, self.output_size))], axis=0)
 
 			return assembled_inputs, subpolicy_inputs, padded_action_seq
 
 	def concat_state_action(self, sample_traj, sample_action_seq):
 		# Add blank to start of action sequence and then concatenate. 
-		sample_action_seq = np.concatenate([np.zeros((1,self.output_size)),sample_action_seq],axis=0)
+		sample_action_seq = np.concatenate([np.zeros((1, self.output_size)), sample_action_seq],axis=0)
 
 		# Currently returns: 
 		# s0, s1, s2, s3, ..., sn-1, sn
 		#  _, a0, a1, a2, ..., an_1, an
-		return np.concatenate([sample_traj, sample_action_seq],axis=-1)
+		return np.concatenate([sample_traj, sample_action_seq], axis=-1)
 
 	def old_concat_state_action(self, sample_traj, sample_action_seq):
 		sample_action_seq = np.concatenate([sample_action_seq, np.zeros((1,self.output_size))],axis=0)
@@ -758,7 +758,7 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 
 	def get_trajectory_segment(self, i):
 
-		if self.args.data=='Continuous' or self.args.data=='ContinuousDir' or self.args.data=='ContinuousNonZero' or self.args.data=='ContinuousDirNZ' or self.args.data=='GoalDirected' or self.args.data=='Separable':
+		if self.args.data == 'Continuous' or self.args.data == 'ContinuousDir' or self.args.data == 'ContinuousNonZero' or self.args.data == 'ContinuousDirNZ' or self.args.data == 'GoalDirected' or self.args.data == 'Separable':
 			# Sample trajectory segment from dataset. 
 			sample_traj, sample_action_seq = self.dataset[i]
 
@@ -776,12 +776,12 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 
 			return concatenated_traj, sample_action_seq, sample_traj
 		
-		elif self.args.data=='MIME' or self.args.data=='Roboturk' or self.args.data=='OrigRoboturk' or self.args.data=='FullRoboturk' or self.args.data=='Mocap':
-
+		elif self.args.data == 'MIME' or self.args.data == 'Roboturk' or self.args.data == 'OrigRoboturk' or \
+				self.args.data == 'FullRoboturk' or self.args.data == 'Mocap':
 			data_element = self.dataset[i]
 
 			# If Invalid.
-			if not(data_element['is_valid']):
+			if not data_element['is_valid']:
 				return None, None, None
 				
 			# if self.args.data=='MIME':
@@ -791,33 +791,33 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 			# 	trajectory = data_element['demo']
 
 			if self.args.gripper:
-				trajectory = data_element['demo']
+				trajectory = data_element['demo']  # joint_values + gripper_values (7 + 1)
 			else:
-				trajectory = data_element['demo'][:,:-1]
+				trajectory = data_element['demo'][:, :-1]
 
-			# If allowing variable skill length, set length for this sample.				
-			if self.args.var_skill_length:
+			# If allowing variable skill length, set length for this sample.
+			if self.args.var_skill_length:  # (chongyi zheng): sample random length
 				# Choose length of 12-16 with certain probabilities. 
-				self.current_traj_len = np.random.choice([12,13,14,15,16],p=[0.1,0.2,0.4,0.2,0.1])
+				self.current_traj_len = np.random.choice([12, 13, 14, 15, 16], p=[0.1, 0.2, 0.4, 0.2, 0.1])
 			else:
 				self.current_traj_len = self.traj_length
 
 			# Sample random start point.
-			if trajectory.shape[0]>self.current_traj_len:
+			if trajectory.shape[0] > self.current_traj_len:
 
-				bias_length = int(self.args.pretrain_bias_sampling*trajectory.shape[0])
+				bias_length = int(self.args.pretrain_bias_sampling * trajectory.shape[0])
 
 				# Probability with which to sample biased segment: 
-				sample_biased_segment = np.random.binomial(1,p=self.args.pretrain_bias_sampling_prob)
+				sample_biased_segment = np.random.binomial(1, p=self.args.pretrain_bias_sampling_prob)
 
 				# If we want to bias sampling of trajectory segments towards the middle of the trajectory, to increase proportion of trajectory segments
 				# that are performing motions apart from reaching and returning. 
 
 				# Sample a biased segment if trajectory length is sufficient, and based on probability of sampling.
-				if ((trajectory.shape[0]-2*bias_length)>self.current_traj_len) and sample_biased_segment:		
+				if trajectory.shape[0] - 2 * bias_length > self.current_traj_len and sample_biased_segment:
 					start_timepoint = np.random.randint(bias_length, trajectory.shape[0] - self.current_traj_len - bias_length)
 				else:
-					start_timepoint = np.random.randint(0,trajectory.shape[0]-self.current_traj_len)
+					start_timepoint = np.random.randint(0, trajectory.shape[0] - self.current_traj_len)
 
 				end_timepoint = start_timepoint + self.current_traj_len
 
@@ -825,31 +825,31 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 				trajectory = trajectory[start_timepoint:end_timepoint]
 
 				# If normalization is set to some value.
-				if self.args.normalization=='meanvar' or self.args.normalization=='minmax':
-					trajectory = (trajectory-self.norm_sub_value)/self.norm_denom_value
+				if self.args.normalization == 'meanvar' or self.args.normalization == 'minmax':
+					trajectory = (trajectory - self.norm_sub_value) / self.norm_denom_value
 
-				# CONDITIONAL INFORMATION for the encoder... 
-
-				if self.args.data=='MIME' or self.args.data=='Mocap':
-					pass
-				elif self.args.data=='Roboturk' or self.args.data=='OrigRoboturk' or self.args.data=='FullRoboturk':
-					# robot_states = data_element['robot-state'][start_timepoint:end_timepoint]
-					# object_states = data_element['object-state'][start_timepoint:end_timepoint]
-					pass
-
-					# self.conditional_information = np.zeros((len(trajectory),self.conditional_info_size))
-					# self.conditional_information[:,:self.cond_robot_state_size] = robot_states
-					# self.conditional_information[:,self.cond_robot_state_size:object_states.shape[-1]] = object_states								
-					# conditional_info = np.concatenate([robot_states,object_states],axis=1)	
+				# # CONDITIONAL INFORMATION for the encoder...
+				# TODO (chongyi zheng): delete this?
+				# if self.args.data == 'MIME' or self.args.data == 'Mocap':
+				# 	pass
+				# elif self.args.data == 'Roboturk' or self.args.data == 'OrigRoboturk' or self.args.data == 'FullRoboturk':
+				# 	# robot_states = data_element['robot-state'][start_timepoint:end_timepoint]
+				# 	# object_states = data_element['object-state'][start_timepoint:end_timepoint]
+				# 	pass
+				#
+				# 	# self.conditional_information = np.zeros((len(trajectory),self.conditional_info_size))
+				# 	# self.conditional_information[:,:self.cond_robot_state_size] = robot_states
+				# 	# self.conditional_information[:,self.cond_robot_state_size:object_states.shape[-1]] = object_states
+				# 	# conditional_info = np.concatenate([robot_states,object_states],axis=1)
 			else:					
 				return None, None, None
-
-			action_sequence = np.diff(trajectory,axis=0)
+			# TODO (chongyi zheng): can we use true actions?
+			action_sequence = np.diff(trajectory, axis=0)
 			# Concatenate
 			concatenated_traj = self.concat_state_action(trajectory, action_sequence)
 
 			# NOW SCALE THIS ACTION SEQUENCE BY SOME FACTOR: 
-			scaled_action_sequence = self.args.action_scale_factor*action_sequence
+			scaled_action_sequence = self.args.action_scale_factor * action_sequence
 
 			return concatenated_traj, scaled_action_sequence, trajectory
 
@@ -882,11 +882,11 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 		self.likelihood_loss = -loglikelihood.mean()
 		self.encoder_KL = encoder_KL.mean()
 
-		self.total_loss = (self.likelihood_loss + self.args.kl_weight*self.encoder_KL)
+		self.total_loss = self.likelihood_loss + self.args.kl_weight * self.encoder_KL
 
-		if self.args.debug:
-			print("Embedding in Update subpolicies.")
-			embed()
+		# if self.args.debug: TODO (chongyi zheng): useless
+		# 	print("Embedding in Update subpolicies.")
+		# 	embed()
 
 		self.total_loss.backward()
 		self.optimizer.step()
@@ -961,7 +961,7 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 		############# (0) #############
 		# Sample trajectory segment from dataset. 			
 		if self.args.traj_segments:			
-			trajectory_segment, sample_action_seq, sample_traj  = self.get_trajectory_segment(i)
+			trajectory_segment, sample_action_seq, sample_traj = self.get_trajectory_segment(i)
 		else:
 			sample_traj, sample_action_seq, concatenated_traj, old_concatenated_traj = self.collect_inputs(i)				
 			# Calling it trajectory segment, but it's not actually a trajectory segment here.
@@ -983,9 +983,9 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 			loglikelihoods, _ = self.policy_network.forward(subpolicy_inputs, sample_action_seq)
 			loglikelihood = loglikelihoods[:-1].mean()
 			 
-			if self.args.debug:
-				print("Embedding in Train.")
-				embed()
+			# if self.args.debug: # (chongyi zheng)
+			# 	print("Embedding in Train.")
+			# 	embed()
 
 			############# (3) #############
 			# Update parameters. 
@@ -995,8 +995,8 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 				# 	(1) Sample another z. 
 				# 	(2) Construct inputs and such.
 				# 	(3) Compute distances, and feed to update_policies.
-				regularization_kl = None
-				z_distance = None
+				# regularization_kl = None  TODO (chongyi zheng): not use
+				# z_distance = None
 
 				self.update_policies_reparam(loglikelihood, subpolicy_inputs, kl_divergence)
 
@@ -1011,7 +1011,7 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 				if return_z: 
 					return latent_z, sample_traj, sample_action_seq
 				else:
-					np.set_printoptions(suppress=True,precision=2)
+					np.set_printoptions(suppress=True, precision=2)
 					print("###################", i)
 					print("Policy loglikelihood:", loglikelihood)
 			

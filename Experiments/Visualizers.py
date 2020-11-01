@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 # # Mocap viz.
 # import MocapVisualizationUtils
 # from mocap_processing.motion.pfnn import Animation, BVH
+from envs.sawyer_viz import SawyerViz
 
 class SawyerVisualizer():
 
@@ -27,11 +28,13 @@ class SawyerVisualizer():
 		# Create environment.
 		print("Do I have a display?", has_display)
 		# self.base_env = robosuite.make('BaxterLift', has_renderer=has_display)
-		self.base_env = robosuite.make("SawyerViz",has_renderer=has_display)
+		# self.base_env = robosuite.make("SawyerViz", has_renderer=has_display)
+		self.base_env = SawyerViz(has_renderer=has_display)
 
-		# Create kinematics object. 
+		# Create kinematics object.
+		# TODO (chongyi zheng): Do we need this?
 		self.sawyer_IK_object = IKWrapper(self.base_env)
-		self.environment = self.sawyer_IK_object.env        
+		self.environment = self.sawyer_IK_object.env
 
 	def update_state(self):
 		# Updates all joint states
@@ -92,10 +95,11 @@ class BaxterVisualizer():
 		# self.base_env = robosuite.make('BaxterLift', has_renderer=has_display)
 		self.base_env = robosuite.make("BaxterViz",has_renderer=has_display)
 
-		# Create kinematics object. 
+		# Create kinematics object.
+		# TODO (chongyi zheng): Do we need this?
 		self.baxter_IK_object = IKWrapper(self.base_env)
-		self.environment = self.baxter_IK_object.env        
-	
+		self.environment = self.baxter_IK_object.env
+
 	def update_state(self):
 		# Updates all joint states
 		self.full_state = self.environment._get_observation()

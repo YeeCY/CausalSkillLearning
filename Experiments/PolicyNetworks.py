@@ -146,14 +146,14 @@ class ContinuousPolicyNetwork(PolicyNetwork_BaseClass):
 
 		self.variance_factor = 0.01
 
-	def forward(self, input, action_sequence, epsilon=0.001):
+	def forward(self, input, action_sequence):
 		# Input is the trajectory sequence of shape: Sequence_Length x 1 x Input_Size. 
 		# Here, we also need the continuous actions as input to evaluate their logprobability / probability. 		
 		# format_input = torch.tensor(input).view(input.shape[0], self.batch_size, self.input_size).float().to(device)
 		format_input = input.view((input.shape[0], self.batch_size, self.input_size))
-
-		hidden = None
-		format_action_seq = torch.from_numpy(action_sequence).to(device).float().view(action_sequence.shape[0],1,self.output_size)
+		# TODO (chongyi zheng): delete this
+		# hidden = None
+		format_action_seq = torch.from_numpy(action_sequence).to(device).float().view(action_sequence.shape[0], 1, self.output_size)
 		lstm_outputs, hidden = self.lstm(format_input)
 
 		# Predict Gaussian means and variances. 
@@ -172,9 +172,9 @@ class ContinuousPolicyNetwork(PolicyNetwork_BaseClass):
 		# log_probabilities = torch.distributions.MultivariateNormal(mean_outputs, torch.diag_embed(variance_outputs)).log_prob(format_action_seq)
 		entropy = dist.entropy()
 
-		if self.args.debug:
-			print("Embedding in the policy network.")		
-			embed()
+		# if self.args.debug:  TODO (chongyi zheng): delete this
+		# 	print("Embedding in the policy network.")
+		# 	embed()
 			
 		return log_probabilities, entropy
 
@@ -1358,7 +1358,7 @@ class ContinuousEncoderNetwork(PolicyNetwork_BaseClass):
 		# Instead of iterating over time and passing each timestep's input to the LSTM, we can now just pass the entire input sequence.
 		outputs, hidden = self.lstm(format_input)
 
-		concatenated_outputs = torch.cat([outputs[0,:,self.hidden_size:],outputs[-1,:,:self.hidden_size]],dim=-1).view((1,1,-1))
+		concatenated_outputs = torch.cat([outputs[0, :, self.hidden_size:], outputs[-1, :, :self.hidden_size]], dim=-1).view((1, 1, -1))
 
 		# Predict Gaussian means and variances. 
 		# if self.args.mean_nonlinearity:
@@ -1390,10 +1390,10 @@ class ContinuousEncoderNetwork(PolicyNetwork_BaseClass):
 		# Compute KL.
 		kl_divergence = torch.distributions.kl_divergence(dist, standard_distribution)
 
-		if self.args.debug:
-			print("###############################")
-			print("Embedding in Encoder Network.")
-			embed()
+		# if self.args.debug:  # TODO (chongyi zheng): delete this
+		# 	print("###############################")
+		# 	print("Embedding in Encoder Network.")
+		# 	embed()
 
 		if z_sample_to_evaluate is None:
 			return latent_z, logprobability, entropy, kl_divergence

@@ -67,7 +67,7 @@ class Roboturk_Dataset(Dataset):
 		# Load data from all tasks. 			
 		self.files = []
 		for i in range(len(self.task_list)):
-			self.files.append(h5py.File("{0}/{1}/demo.hdf5".format(self.dataset_directory,self.task_list[i]),'r'))
+			self.files.append(h5py.File("{0}/{1}/demo.hdf5".format(self.dataset_directory, self.task_list[i]), 'r'))
 
 	def __len__(self):
 		return self.total_length
@@ -147,7 +147,8 @@ class Roboturk_Dataset(Dataset):
 
 		# for task_index in range(len(self.task_list)):
 		# for task_index in [3,5]:
-		for task_index in [0,1,2,4,6,7]:
+		# for task_index in [0, 1, 2, 4, 6, 7]:
+		for task_index in [6, 7]:
 
 			print("#######################################")
 			print("Preprocessing task index: ", task_index)
@@ -167,7 +168,7 @@ class Roboturk_Dataset(Dataset):
 			task_demo_list = []
 
 			# For every element in the filelist of the element,
-			for i in range(1,self.num_demos[task_index]+1):
+			for i in range(1, self.num_demos[task_index] + 1):
 
 				print("Preprocessing task index: ", task_index, " Demo Index: ", i, " of: ", self.num_demos[task_index])
 			
@@ -196,7 +197,7 @@ class Roboturk_Dataset(Dataset):
 					# 1 is right finger. 0 is left finger. 
 					# 1-0 is right-left. 
 		
-					gripper_values = gripper_finger_values[:,1]-gripper_finger_values[:,0]
+					gripper_values = gripper_finger_values[:, 1] - gripper_finger_values[:, 0]
 					gripper_values = (gripper_values-gripper_values.min()) / (gripper_values.max()-gripper_values.min())
 					gripper_values = 2*gripper_values-1
 
@@ -224,8 +225,8 @@ class Roboturk_Dataset(Dataset):
 				datapoint['flat-state'] = flattened_state_sequence
 				datapoint['robot-state'] = robot_state_array
 				datapoint['object-state'] = object_state_array
-				datapoint['demo'] = concatenated_demonstration				
-				datapoint['demonstrated_actions'] = concatenated_actions
+				datapoint['demo'] = concatenated_demonstration # (chongyi zheng): joint_values + gripper values
+				datapoint['demonstrated_actions'] = concatenated_actions  # (chongyi zheng): joint_action_sequence + gripper_action_sequence
 
 				# Add this dictionary to the file_demo_list. 
 				task_demo_list.append(datapoint)
@@ -243,7 +244,9 @@ class Roboturk_Dataset(Dataset):
 class Roboturk_FullDataset(Roboturk_Dataset):
 	def __init__(self, args):
 		super(Roboturk_FullDataset, self).__init__(args)
-		self.environment_names = ["SawyerPickPlaceBread","SawyerPickPlaceCan","SawyerPickPlaceCereal","SawyerPickPlace","SawyerPickPlaceMilk","SawyerNutAssembly", "SawyerNutAssemblyRound","SawyerNutAssemblySquare"]
+		self.environment_names = ["SawyerPickPlaceBread", "SawyerPickPlaceCan", "SawyerPickPlaceCereal",
+								  "SawyerPickPlace", "SawyerPickPlaceMilk", "SawyerNutAssembly",
+								  "SawyerNutAssemblyRound", "SawyerNutAssemblySquare"]
 
 	def setup(self):
 		self.files = []
@@ -256,24 +259,27 @@ class Roboturk_FullDataset(Roboturk_Dataset):
 
 	def __getitem__(self, index):
 
-		if index>=self.total_length:
+		if index >= self.total_length:
 			print("Out of bounds of dataset.")
 			return None
 
 		# Get bucket that index falls into based on num_demos array. 
-		task_index = np.searchsorted(self.cummulative_num_demos, index, side='right')-1
+		task_index = np.searchsorted(self.cummulative_num_demos, index, side='right') - 1
 		
 		# Decide task ID, and new index modulo num_demos.
 		# Subtract number of demonstrations in cumsum until then, and then 				
-		new_index = index-self.cummulative_num_demos[max(task_index,0)]		
-		data_element = self.files[task_index][new_index]
+		new_index = index - self.cummulative_num_demos[max(task_index, 0)]
+		try:
+			data_element = self.files[task_index][new_index]
+		except IndexError:
+			print()
 
-		resample_length = len(data_element['demo'])//self.args.ds_freq
+		resample_length = len(data_element['demo']) // self.args.ds_freq
 		# print("Orig:", len(data_element['demo']),"New length:",resample_length)
 
 		self.kernel_bandwidth = self.args.smoothing_kernel_bandwidth
 
-		if resample_length<=1 or data_element['robot-state'].shape[0]<=1:
+		if resample_length <= 1 or data_element['robot-state'].shape[0] <= 1:
 			data_element['is_valid'] = False			
 		else:
 			data_element['is_valid'] = True
@@ -286,7 +292,7 @@ class Roboturk_FullDataset(Roboturk_Dataset):
 
 			data_element['environment-name'] = self.environment_names[task_index]
 
-			if self.args.ds_freq>1:
+			if self.args.ds_freq > 1:
 				data_element['demo'] = resample(data_element['demo'], resample_length)
 				data_element['robot-state'] = resample(data_element['robot-state'], resample_length)
 				data_element['object-state'] = resample(data_element['object-state'], resample_length)
@@ -373,7 +379,7 @@ class Roboturk_NewSegmentedDataset(Dataset):
 		self.files = []
 		# for i in range(len(self.task_list)):
 		for i in range(len(self.task_list)):
-			self.files.append( np.load("{0}/{1}/New_Task_Demo_Array.npy".format(self.dataset_directory, self.task_list[i]), allow_pickle=True))
+			self.files.append(np.load("{0}/{1}/New_Task_Demo_Array.npy".format(self.dataset_directory, self.task_list[i]), allow_pickle=True))
 
 		# # Seems to follow joint angles order:
 		# # ('time','right_j0', 'head_pan', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6', 'r_gripper_l_finger_joint', 'r_gripper_r_finger_joint', 'Milk0', 'Bread0', 'Cereal0', 'Can0').
@@ -481,7 +487,7 @@ class Roboturk_Dataloader_Tester(unittest.TestCase):
 		data_element = self.dataset[0]
 
 		validity = data_element['is_valid']
-		check_demo_data = (data_element['demo']==np.load("Test_Data/Roboturk_Dataloader_DE.npy")).all()
+		check_demo_data = (data_element['demo'] == np.load("Test_Data/Roboturk_Dataloader_DE.npy")).all()
 
 		self.assertTrue(validity and check_demo_data)
 

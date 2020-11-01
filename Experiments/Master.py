@@ -65,8 +65,8 @@ class Master():
 			elif self.args.setting=='cycle_transfer':
 				self.policy_manager = PolicyManager_CycleConsistencyTransfer(args=self.args, source_dataset=source_dataset, target_dataset=target_dataset)				
 
-		if self.args.debug:
-			embed()
+		# if self.args.debug:
+		# 	embed()
 			
 		# Create networks and training operations. 
 		self.policy_manager.setup()

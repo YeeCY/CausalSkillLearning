@@ -250,8 +250,9 @@ class Roboturk_FullDataset(Roboturk_Dataset):
 
 	def setup(self):
 		self.files = []
-		for i in range(len(self.task_list) - 2):
-			# TODO (chongyi zheng): what's this?
+		for i in range(len(self.task_list)):
+		# for i in range(len(self.task_list) - 2):
+			# TODO (chongyi zheng): i == 3 - bins_full, i == 5 - pegs_SquareNut
 			if i == 3 or i == 5:
 				self.files.append(np.load("{0}/{1}/FullDataset_Task_Demo_Array.npy".format(self.load_directory, self.task_list[i]), allow_pickle=True))
 			else:
@@ -269,10 +270,7 @@ class Roboturk_FullDataset(Roboturk_Dataset):
 		# Decide task ID, and new index modulo num_demos.
 		# Subtract number of demonstrations in cumsum until then, and then 				
 		new_index = index - self.cummulative_num_demos[max(task_index, 0)]
-		try:
-			data_element = self.files[task_index][new_index]
-		except IndexError:
-			print()
+		data_element = self.files[task_index][new_index]
 
 		resample_length = len(data_element['demo']) // self.args.ds_freq
 		# print("Orig:", len(data_element['demo']),"New length:",resample_length)
@@ -416,8 +414,8 @@ class Roboturk_NewSegmentedDataset(Dataset):
 
 		self.kernel_bandwidth = self.args.smoothing_kernel_bandwidth
 
-		if resample_length<=1 or index==4900 or index==537:
-			data_element['is_valid'] = False			
+		if resample_length <= 1 or index == 4900 or index == 537:
+			data_element['is_valid'] = False
 		else:
 			data_element['is_valid'] = True
 

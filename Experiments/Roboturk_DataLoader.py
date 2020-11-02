@@ -349,8 +349,11 @@ class Roboturk_NewSegmentedDataset(Dataset):
 	def __init__(self, args):
 
 		super(Roboturk_NewSegmentedDataset, self).__init__()
-		
-		self.dataset_directory = '/checkpoint/tanmayshankar/Roboturk/RoboTurkPilot'
+
+		# TODO (chongyi zheng)
+		# self.dataset_directory = '/checkpoint/tanmayshankar/Roboturk/RoboTurkPilot'
+		self.dataset_directory = os.path.expanduser('~/RoboTurkPilot')
+		self.load_directory = '../Data'
 		self.args = args
 		# Require a task list. 
 		# The task name is needed for setting the environment, rendering. 
@@ -377,7 +380,7 @@ class Roboturk_NewSegmentedDataset(Dataset):
 		self.files = []
 		# for i in range(len(self.task_list)):
 		for i in range(len(self.task_list)):
-			self.files.append(np.load("{0}/{1}/New_Task_Demo_Array.npy".format(self.dataset_directory, self.task_list[i]), allow_pickle=True))
+			self.files.append(np.load("{0}/{1}/New_Task_Demo_Array.npy".format(self.load_directory, self.task_list[i]), allow_pickle=True))
 
 		# # Seems to follow joint angles order:
 		# # ('time','right_j0', 'head_pan', 'right_j1', 'right_j2', 'right_j3', 'right_j4', 'right_j5', 'right_j6', 'r_gripper_l_finger_joint', 'r_gripper_r_finger_joint', 'Milk0', 'Bread0', 'Cereal0', 'Can0').

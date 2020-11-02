@@ -63,7 +63,10 @@ class SawyerVisualizer():
 		# Move gripper positions.
 		self.environment.step(actions)
 
-		image = np.flipud(self.environment.sim.render(600, 600, camera_name='vizview1'))
+		# TODO (chongyi zheng)
+		# image = np.flipud(self.environment.sim.render(600, 600, camera_name='vizview1'))
+		image = np.flipud(self.environment.sim.render(600, 600, camera_name='frontview'))
+
 		return image
 
 	def visualize_joint_trajectory(self, trajectory, return_gif=False, gif_path=None, gif_name="Traj.gif", segmentations=None, return_and_save=False, additional_info=None):

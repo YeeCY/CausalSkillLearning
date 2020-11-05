@@ -127,8 +127,8 @@ class PolicyManager_BaseClass():
 			trajectory = data_element['demo']
 
 			# If normalization is set to some value.
-			if self.args.normalization=='meanvar' or self.args.normalization=='minmax':
-				trajectory = (trajectory-self.norm_sub_value)/self.norm_denom_value
+			if self.args.normalization == 'meanvar' or self.args.normalization == 'minmax':
+				trajectory = (trajectory-self.norm_sub_value )/ self.norm_denom_value
 
 			action_sequence = np.diff(trajectory,axis=0)
 
@@ -140,15 +140,15 @@ class PolicyManager_BaseClass():
 				robot_states = data_element['robot-state']
 				object_states = data_element['object-state']
 
-				self.conditional_information = np.zeros((self.conditional_info_size))
+				self.conditional_information = np.zeros((self.conditional_info_size))  # (chongyi zheng): robot-state dim + max object-state dim
 				# Don't set this if pretraining / baseline.
-				if self.args.setting=='learntsub' or self.args.setting=='imitation':
-					self.conditional_information = np.zeros((len(trajectory),self.conditional_info_size))
-					self.conditional_information[:,:self.cond_robot_state_size] = robot_states
+				if self.args.setting == 'learntsub' or self.args.setting == 'imitation':
+					self.conditional_information = np.zeros((len(trajectory), self.conditional_info_size))
+					self.conditional_information[:, :self.cond_robot_state_size] = robot_states
 					# Doing this instead of self.cond_robot_state_size: because the object_states size varies across demonstrations.
-					self.conditional_information[:,self.cond_robot_state_size:self.cond_robot_state_size+object_states.shape[-1]] = object_states	
-					# Setting task ID too.		
-					self.conditional_information[:,-self.number_tasks+data_element['task-id']] = 1.
+					self.conditional_information[:, self.cond_robot_state_size:self.cond_robot_state_size + object_states.shape[-1]] = object_states
+					# Setting task ID too.  TODO (chongyi zheng): note task id
+					self.conditional_information[:, -self.number_tasks + data_element['task-id']] = 1.  # TODO (chongyi zheng): do we use this?
 			# Concatenate
 			concatenated_traj = self.concat_state_action(trajectory, action_sequence)
 			old_concatenated_traj = self.old_concat_state_action(trajectory, action_sequence)
@@ -727,7 +727,7 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 			# Append latent z indices to sample_traj data to feed as input to BOTH the latent policy network and the subpolicy network. 
 			assembled_inputs = torch.zeros((len(input_trajectory),self.input_size+self.latent_z_dimensionality+1)).to(device)
 			assembled_inputs[:, :self.input_size] = torch.tensor(input_trajectory).view(len(input_trajectory),self.input_size).to(device).float()
-
+			# TODO (chongyi zheng): assembled_inputs seem useless
 			assembled_inputs[1:, self.input_size:-1] = latent_z_indices[:-1]
 			assembled_inputs[1:, -1] = latent_b[:-1].float()
 
@@ -975,7 +975,7 @@ class PolicyManager_Pretrain(PolicyManager_BaseClass):
 
 			########## (2) & (3) ##########
 			# Feed latent z and trajectory segment into policy network and evaluate likelihood. 
-			latent_z_seq, latent_b = self.construct_dummy_latents(latent_z)
+			latent_z_seq, latent_b = self.construct_dummy_latents(latent_z)  # TODO (chongyi zheng): dummy latent_b = all_zeros
 
 			_, subpolicy_inputs, sample_action_seq = self.assemble_inputs(trajectory_segment, latent_z_seq, latent_b, sample_action_seq)
 
@@ -1194,18 +1194,18 @@ class PolicyManager_Joint(PolicyManager_BaseClass):
 		elif self.args.data=='Roboturk' or self.args.data=='OrigRoboturk' or self.args.data=='FullRoboturk':
 			self.state_size = 8	
 			self.state_dim = 8
-			self.input_size = 2*self.state_size	
+			self.input_size = 2*self.state_size	# TODO (chongyi zheng): action = difference between states
 			self.output_size = self.state_size
 			self.traj_length = self.args.traj_length
 
 			self.visualizer = SawyerVisualizer()
 
 			# Max of robot_state + object_state sizes across all sawyer environments. 
-			# Robot size always 30. Max object state size is... 23. 
+			# Robot size always 30. Max object state size is... 23. TODO (chongyi zheng): is this used?
 			self.cond_robot_state_size = 30
 			self.cond_object_state_size = 23
 			self.number_tasks = 8
-			self.conditional_info_size = self.cond_robot_state_size+self.cond_object_state_size+self.number_tasks
+			self.conditional_info_size = self.cond_robot_state_size + self.cond_object_state_size + self.number_tasks  # (chongyi zheng): task_id in the final dims
 			self.conditional_viz_env = True
 
 		elif self.args.data=='Mocap':
@@ -1243,7 +1243,7 @@ class PolicyManager_Joint(PolicyManager_BaseClass):
 		self.baseline = None
 
 		# Per step decay. 
-		self.decay_rate = (self.initial_epsilon-self.final_epsilon)/(self.decay_counter)
+		self.decay_rate = (self.initial_epsilon - self.final_epsilon) / self.decay_counter
 
 	def create_networks(self):
 		if self.args.discrete_z:
@@ -1975,10 +1975,10 @@ class PolicyManager_Joint(PolicyManager_BaseClass):
 		# With learnt discrete subpolicy: 
 
 		# For all epochs:
-		#	# For all trajectories:
-		# 		# Sample z from variational network.
-		# 		# Evalute likelihood of latent policy, and subpolicy.
-		# 		# Update policies using likelihoods.		
+		#	For all trajectories:
+		# 		Sample z from variational network.
+		# 		Evalute likelihood of latent policy, and subpolicy.
+		# 		Update policies using likelihoods.
 
 		self.set_epoch(counter)	
 		self.iter = counter
@@ -1991,20 +1991,23 @@ class PolicyManager_Joint(PolicyManager_BaseClass):
 			############# (1) #############
 			# Sample latent variables from p(\zeta | \tau).
 			latent_z_indices, latent_b, variational_b_logprobabilities, variational_z_logprobabilities,\
-			variational_b_probabilities, variational_z_probabilities, kl_divergence, prior_loglikelihood = self.variational_policy.forward(torch.tensor(old_concatenated_traj).to(device).float(), self.epsilon)
+			variational_b_probabilities, variational_z_probabilities, kl_divergence, prior_loglikelihood = \
+				self.variational_policy.forward(torch.tensor(old_concatenated_traj).to(device).float(), self.epsilon)
 			
 			########## (2) & (3) ##########
 			# Evaluate Log Likelihoods of actions and options as "Return" for Variational policy.
 			subpolicy_loglikelihoods, subpolicy_loglikelihood, subpolicy_entropy,\
 			latent_loglikelihood, latent_b_logprobabilities, latent_z_logprobabilities,\
 			 latent_b_probabilities, latent_z_probabilities, latent_z_logprobability, latent_b_logprobability, \
-			 learnt_subpolicy_loglikelihood, learnt_subpolicy_loglikelihoods, temporal_loglikelihoods = self.evaluate_loglikelihoods(sample_traj, sample_action_seq, concatenated_traj, latent_z_indices, latent_b)
+			 learnt_subpolicy_loglikelihood, learnt_subpolicy_loglikelihoods, temporal_loglikelihoods = \
+				self.evaluate_loglikelihoods(sample_traj, sample_action_seq, concatenated_traj, latent_z_indices, latent_b)
 
 			if self.args.train:
-				if self.args.debug:
-					if self.iter%self.args.debug==0:
-						print("Embedding in Train Function.")
-						embed()
+				# TODO (chongyi zheng): delete this
+				# if self.args.debug:
+				# 	if self.iter%self.args.debug==0:
+				# 		print("Embedding in Train Function.")
+				# 		embed()
 
 				############# (3) #############
 				# Update latent policy Pi_z with Reinforce like update using LL as return. 			
@@ -2052,9 +2055,6 @@ class PolicyManager_Joint(PolicyManager_BaseClass):
 						print("Encoder Loglikelihood:", eval_encoded_logprobs.detach().cpu().numpy())
 						print("Orig Encoder Loglikelihood:", eval_orig_encoder_logprobs.detach().cpu().numpy())
 				
-				if self.args.debug:
-					embed()			
-
 	def evaluate_metrics(self):
 		self.distances = -np.ones((self.test_set_size))
 

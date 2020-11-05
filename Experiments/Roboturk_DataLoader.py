@@ -363,7 +363,7 @@ class Roboturk_NewSegmentedDataset(Dataset):
 		self.environment_names = ["SawyerPickPlaceBread","SawyerPickPlaceCan","SawyerPickPlaceCereal","SawyerPickPlaceMilk","SawyerNutAssemblyRound","SawyerNutAssemblySquare"]
 		self.num_demos = np.array([1069, 1069, 1069, 1069, 1144, 1145])
 		self.cummulative_num_demos = self.num_demos.cumsum()
-		self.cummulative_num_demos = np.insert(self.cummulative_num_demos,0,0)
+		self.cummulative_num_demos = np.insert(self.cummulative_num_demos, 0, 0)
 		# Append -1 to the start of cummulative_num_demos. This has two purposes. 
 		# The first is that when we are at index 0 of the dataset, if we appended 0, np.searchsorted returns 0, rather than 1. 
 		# For index 1, it returns 1. This was becoming inconsistent behavior for demonstrations in the same task. 
